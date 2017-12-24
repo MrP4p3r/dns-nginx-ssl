@@ -1,0 +1,14 @@
+
+server {
+    listen 80;
+    server_name (((- app_domain_name -)));
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+
+    location /.well-known/acme-challenge {
+        alias /var/www/(((- app_domain_name -)))/.well-known/acme-challenge;
+        try_files $uri $uri/;
+    }
+}
