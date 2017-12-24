@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #  -*- coding: utf-8 -*-
 
-import sys
 import argparse
 from contextlib import contextmanager
 
@@ -17,10 +16,10 @@ def issue_and_install_cert(app_domain_name):
     import sys
     from subprocess import Popen
 
-    acme_challenge_dir = ensure_acme_challenge_dir_exists(app_domain_name)
+    ensure_acme_challenge_dir_exists(app_domain_name)
     proc = Popen(['/root/.acme.sh/acme.sh', '--issue',
                   '-d', app_domain_name,
-                  '-w', acme_challenge_dir])
+                  '-w', get_webroot(app_domain_name)], shell=True)
 
     if proc.wait() != 0:
         print('Acme.sh could not issue a new cert. Exitting')
@@ -31,7 +30,7 @@ def issue_and_install_cert(app_domain_name):
                   '-d', app_domain_name,
                   '--cert-file', os.path.join(sslcerts_dir, 'cert.pem'),
                   '--key-file', os.path.join(sslcerts_dir, 'key.pem'),
-                  '--reloadCmd', get_reload_nginx_cmd()])
+                  '--reloadCmd', get_reload_nginx_cmd()], shell=True)
 
     if proc.wait() != 0:
         print('Acme.sh could not install cert. Exitting')
@@ -99,11 +98,15 @@ def ensure_sslcerts_dir_exists(app_domain_name):
 def ensure_acme_challenge_dir_exists(app_domain_name):
     import os
 
-    acme_challenge_dir = '/var/www/%s/.well-known/acme-challenge' % app_domain_name
+    acme_challenge_dir = os.path.join(get_webroot(app_domain_name), '.well-known/acme-challenge')
     if not os.path.exists(acme_challenge_dir):
         os.makedirs(acme_challenge_dir, exist_ok=True)
 
     return acme_challenge_dir
+
+
+def get_webroot(app_domain_name):
+    return '/var/www/%s' % app_domain_name
 
 
 def reload_nginx():
