@@ -1,7 +1,7 @@
 
 server {
     listen 80;
-    server_name (((- app_domain_name -)));
+    server_name ((( app_domain_name )));
 
     location / {
         return 301 https://$host$request_uri;
