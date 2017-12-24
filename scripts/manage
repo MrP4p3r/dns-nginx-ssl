@@ -19,7 +19,7 @@ def issue_and_install_cert(app_domain_name):
     ensure_acme_challenge_dir_exists(app_domain_name)
     proc = Popen(['/root/.acme.sh/acme.sh', '--issue',
                   '-d', app_domain_name,
-                  '-w', get_webroot(app_domain_name)], shell=True)
+                  '-w', get_webroot(app_domain_name)])
 
     if proc.wait() != 0:
         print('Acme.sh could not issue a new cert. Exitting')
@@ -30,7 +30,7 @@ def issue_and_install_cert(app_domain_name):
                   '-d', app_domain_name,
                   '--cert-file', os.path.join(sslcerts_dir, 'cert.pem'),
                   '--key-file', os.path.join(sslcerts_dir, 'key.pem'),
-                  '--reloadCmd', get_reload_nginx_cmd()], shell=True)
+                  '--reloadCmd', get_reload_nginx_cmd()])
 
     if proc.wait() != 0:
         print('Acme.sh could not install cert. Exitting')
@@ -89,7 +89,8 @@ def ensure_sslcerts_dir_exists(app_domain_name):
 
     ssl_certs_dir = '/etc/sslcerts'
     ssl_certs_domain_dir = os.path.join(ssl_certs_dir, app_domain_name)
-    os.mkdir(ssl_certs_domain_dir, mode=0o700)
+    if not os.path.exists(ssl_certs_domain_dir):
+        os.mkdir(ssl_certs_domain_dir, mode=0o700)
     os.system('chown nginx:nginx %s' % ssl_certs_domain_dir)
 
     return ssl_certs_domain_dir
