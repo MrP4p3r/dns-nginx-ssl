@@ -2,11 +2,14 @@ FROM alpine:3.5
 
 
 RUN apk update && \
-    apk add build-base linux-headers libc-dev libstdc++ libgcc gcc g++ make && \
-    apk add python3-dev
-
-RUN apk add vim nginx dnsmasq openssl socat && \
-    apk add --no-cache python3
+    apk add --no-cache --virtual .deps \
+        build-base linux-headers \
+        libc-dev libstdc++ libgcc \
+        gcc g++ make \
+        python3-dev && \
+    apk add --no-cache openssl socat && \
+    apk add --no-cache \
+        vim nginx pdns pdns-backend-sqlite3 python3
 
 
 RUN python3 -m ensurepip && \
@@ -18,17 +21,18 @@ RUN python3 -m ensurepip && \
 
 RUN pip install circus jinja2
 
-RUN apk add curl && curl https://get.acme.sh | sh
-
-
-RUN mkdir /run/nginx && \
+RUN apk add curl && curl https://get.acme.sh | sh && \
+    mkdir /run/nginx && \
     mkdir -p /var/www && \
     mkdir -p /etc/sslcerts && \
     chown nginx:nginx /run/nginx /var/www /etc/sslcerts
 
 
 COPY ./confs/nginx/vhosts/ /etc/nginx/conf.d/
+COPY ./confs/powerdns/pdns.conf /etc/pdns/pdns.conf
 COPY ./confs/circus/ /etc/circus/
+
+RUN mkdir /var/pdns
 
 
 COPY ./scripts/ /scripts/
@@ -38,5 +42,10 @@ RUN chmod u+x /scripts/* && \
         . /etc/profile ; \
     ' >> /root/.profile
 
+RUN apk del .deps
 
-CMD ["circusd", "--log-level=ERROR", "/etc/circus/circus.ini"]
+EXPOSE 53
+EXPOSE 80
+EXPOSE 443
+
+CMD ["/scripts/start.sh"]
