@@ -28,12 +28,12 @@ RUN apk add curl && curl https://get.acme.sh | sh && \
     chown nginx:nginx /run/nginx /var/www /etc/sslcerts
 
 
-COPY ./confs/nginx/vhosts/ /etc/nginx/conf.d/
 COPY ./confs/powerdns/pdns.conf /etc/pdns/pdns.conf
 COPY ./confs/circus/ /etc/circus/
 COPY ./confs/resolv.conf /etc/resolv.conf
 
-RUN mkdir /var/pdns
+RUN mkdir /var/pdns && \
+    rm -rf /etc/nginx/conf.d/*
 
 
 COPY ./scripts/ /scripts/
