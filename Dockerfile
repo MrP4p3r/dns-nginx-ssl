@@ -30,7 +30,7 @@ RUN git clone https://github.com/Neilpang/acme.sh.git /src/acme.sh && \
 
 COPY ./confs/powerdns/pdns.conf /etc/pdns/pdns.conf
 COPY ./confs/circus/ /etc/circus/
-COPY ./confs/resolv.conf /etc/resolv.conf
+COPY ./confs/resolv.conf /etc/resolv.conf.bak
 
 RUN mkdir /var/pdns /etc/pdns/pdns.d && \
     rm -rf /etc/nginx/conf.d/*
