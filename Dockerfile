@@ -5,9 +5,9 @@ RUN apk update && \
     apk add --no-cache --virtual .deps \
         build-base linux-headers \
         libc-dev libstdc++ libgcc \
-        gcc g++ make \
+        gcc g++ make git \
         python3-dev && \
-    apk add --no-cache openssl socat && \
+    apk add --no-cache openssl socat curl && \
     apk add --no-cache \
         vim nginx pdns pdns-backend-sqlite3 python3
 
@@ -21,7 +21,7 @@ RUN python3 -m ensurepip && \
 
 RUN pip install circus jinja2
 
-RUN apk add curl && curl https://get.acme.sh | sh && \
+RUN git clone https://github.com/Neilpang/acme.sh.git /src/acme.sh && \
     mkdir /run/nginx && \
     mkdir -p /var/www && \
     mkdir -p /etc/sslcerts && \
@@ -32,7 +32,7 @@ COPY ./confs/powerdns/pdns.conf /etc/pdns/pdns.conf
 COPY ./confs/circus/ /etc/circus/
 COPY ./confs/resolv.conf /etc/resolv.conf
 
-RUN mkdir /var/pdns && \
+RUN mkdir /var/pdns /etc/pdns/pdns.d && \
     rm -rf /etc/nginx/conf.d/*
 
 

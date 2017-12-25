@@ -6,11 +6,19 @@
 PDNS_DB_DIR=/var/pdns
 PDNS_DB_NAME=pdns.sqlite3
 
-if [ -f "$PDNS_DB_DIR/$PDNS_DB_NAME" ]
+if [ ! -f "$PDNS_DB_DIR/$PDNS_DB_NAME" ]
 then
     curl https://raw.githubusercontent.com/PowerDNS/pdns/master/modules/gsqlite3backend/schema.sqlite3.sql | sqlite3 "$PDNS_DB_DIR/$PDNS_DB_NAME"
     chown -R pdns:pdns "$PDNS_DB_DIR"
     chmod -R u+rw,g+rw,o-rwx "$PDNS_DB_DIR"
+fi
+
+
+if [ ! -d "/root/.acme.sh" ]
+then
+    cd /src/acme.sh
+    sh ./acme.sh --install
+    cd -
 fi
 
 
