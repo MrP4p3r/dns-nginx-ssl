@@ -14,12 +14,14 @@ then
 fi
 
 
-if [ ! -d "/root/.acme.sh" ]
+if [ "`ls -1 /root/.acme.sh/ | wc -l`" = "0" ]
 then
     cd /src/acme.sh
     sh ./acme.sh --install
     cd -
 fi
+
+cp /etc/resolv.conf.bak /etc/resolv.conf
 
 
 # Start circus
