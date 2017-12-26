@@ -30,7 +30,7 @@ def issue_and_install_cert(app_domain_name):
                   '-d', app_domain_name,
                   '--cert-file', os.path.join(sslcerts_dir, 'cert.pem'),
                   '--key-file', os.path.join(sslcerts_dir, 'key.pem'),
-                  '--reloadCmd', get_reload_nginx_cmd()])
+                  '--reloadCmd', '/scripts/restart-nginx'])
 
     if proc.wait() != 0:
         print('Acme.sh could not install cert. Exitting')
@@ -111,8 +111,12 @@ def get_webroot(app_domain_name):
 
 
 def reload_nginx():
-    import os
-    os.system(get_reload_nginx_cmd())
+    from subprocess import Popen
+    while True:
+        proc = Popen(get_reload_nginx_cmd())
+        proc.wait(3)
+        if proc.poll() is not None:
+            break
 
 
 def get_reload_nginx_cmd():
