@@ -30,7 +30,7 @@ def issue_and_install_cert(app_domain_name):
                   '-d', app_domain_name,
                   '--cert-file', os.path.join(sslcerts_dir, 'cert.pem'),
                   '--key-file', os.path.join(sslcerts_dir, 'key.pem'),
-                  '--reloadCmd', '/scripts/restart-nginx'])
+                  '--reloadCmd', __file__ + ' restart-nginx'])
 
     if proc.wait() != 0:
         print('Acme.sh could not install cert. Exitting')
@@ -130,8 +130,14 @@ def get_reload_nginx_cmd(as_list=True):
 if __name__ == '__main__':
     import sys
 
+    usage_info = (
+        'Usage: \n'
+        '\tmanage add-host -d DOMAIN_NAME -c CONTAINER_NAME\n'
+        '\tmanage restart-nginx\n'
+    )
+
     if len(sys.argv) <= 1:
-        print('No args provided. Usage: \n\tmanage add-host -d DOMAIN_NAME -c CONTAINER_NAME')
+        print('No args provided. ' + usage_info)
         sys.exit(1)
 
     if sys.argv[1] == 'add-host':
@@ -141,3 +147,8 @@ if __name__ == '__main__':
         args = parser.parse_args(sys.argv[2:])
 
         initialize_domain_with_cert(args.domain, args.container)
+    elif sys.argv[1] == 'restart-nginx':
+        reload_nginx()
+    else:
+        print('Bad command ' + usage_info)
+        sys.exit(1)
