@@ -114,13 +114,17 @@ def reload_nginx():
     from subprocess import Popen
     while True:
         proc = Popen(get_reload_nginx_cmd())
-        proc.wait(3)
-        if proc.poll() is not None:
-            break
+        try:
+            proc.wait(3)
+            if proc.poll() is not None:
+                break
+        except Exception:
+            continue
 
 
-def get_reload_nginx_cmd():
-    return 'circusctl reload nginx'
+def get_reload_nginx_cmd(as_list=True):
+    cmd = 'circusctl reload nginx'
+    return cmd.split() if as_list else cmd
 
 
 if __name__ == '__main__':
