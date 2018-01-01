@@ -1,6 +1,5 @@
 FROM alpine:3.5
 
-
 RUN apk update && \
     apk add --no-cache --virtual .deps \
         build-base linux-headers \
@@ -30,17 +29,12 @@ RUN apk update && \
 COPY ./confs/powerdns/pdns.conf /etc/pdns/pdns.conf
 COPY ./confs/circus/ /etc/circus/
 
-
 RUN mkdir /var/pdns /etc/pdns/pdns.d && \
     rm -rf /etc/nginx/conf.d/*
 
-
 COPY ./scripts/ /scripts/
-RUN chmod u+x /scripts/* && \
-    echo 'export PATH=/scripts:$PATH' >> /etc/profile && \
-    echo '\
-        . /etc/profile ; \
-    ' >> /root/.profile
+RUN chmod u+x /scripts/*
+ENV PATH=/scripts:$PATH
 
 EXPOSE 53
 EXPOSE 80
