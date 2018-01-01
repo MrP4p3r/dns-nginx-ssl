@@ -14,14 +14,6 @@ then
 fi
 
 
-if [ "`ls -1 /root/.acme.sh/ | wc -l`" = "0" ]
-then
-    cd /src/acme.sh
-    sh ./acme.sh --install
-    cd -
-fi
-
-
 # Start circus
 
 circusd --log-level=ERROR /etc/circus/circus.ini
