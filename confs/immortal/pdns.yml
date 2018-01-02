@@ -1,0 +1,7 @@
+cmd: /usr/sbin/pdns_server --daemon=no
+log:
+  file: /var/log/pdns.log
+  age: 10  # seconds
+  num: 7   # int
+  size: 1  # MegaBytes
+wait: 1

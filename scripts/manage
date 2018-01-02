@@ -123,8 +123,11 @@ def reload_nginx():
 
 
 def get_reload_nginx_cmd(as_list=True):
-    cmd = 'circusctl reload nginx'
-    return cmd.split() if as_list else cmd
+    cmd = ['bash', '-c', 'immortalctl stop nginx; immortalctl start nginx']
+    if as_list:
+        return cmd
+    else:
+        return ''.join(map(lambda s: ('\'%s\'' % s) if ' ' in s else s ))
 
 
 if __name__ == '__main__':

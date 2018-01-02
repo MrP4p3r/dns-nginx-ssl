@@ -14,6 +14,8 @@ then
 fi
 
 
-# Start circus
+# Start immortal
 
-circusd --log-level=ERROR /etc/circus/circus.ini
+mkdir /run/immortal
+cd /run/immortal
+immortaldir /etc/immortal

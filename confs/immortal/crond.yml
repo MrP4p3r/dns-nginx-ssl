@@ -1,0 +1,7 @@
+cmd: /usr/sbin/crond -f
+log:
+  file: /var/log/crond.log
+  age: 10  # seconds
+  num: 7   # int
+  size: 1  # MegaBytes
+wait: 1
