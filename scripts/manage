@@ -5,9 +5,9 @@ import argparse
 from contextlib import contextmanager
 
 
-def initialize_domain_with_cert(app_domain_name, app_container_name):
+def initialize_domain_with_cert(app_domain_name, app_container_name, app_container_port):
 
-    with write_nginx_vhost_config(app_domain_name, app_container_name):
+    with write_nginx_vhost_config(app_domain_name, app_container_name, app_container_port):
         issue_and_install_cert(app_domain_name)
 
 
@@ -38,10 +38,10 @@ def issue_and_install_cert(app_domain_name):
 
 
 @contextmanager
-def write_nginx_vhost_config(app_domain_name, app_container_name):
+def write_nginx_vhost_config(app_domain_name, app_container_name, app_container_port):
     import os
 
-    configs = render_vhost_configs(app_domain_name, app_container_name)
+    configs = render_vhost_configs(app_domain_name, app_container_name, app_container_port)
     config_path = '/etc/nginx/conf.d/%s.conf' % app_domain_name
 
     if os.path.exists(config_path):
@@ -58,7 +58,7 @@ def write_nginx_vhost_config(app_domain_name, app_container_name):
     reload_nginx()
 
 
-def render_vhost_configs(app_domain_name, app_container_name):
+def render_vhost_configs(app_domain_name, app_container_name, app_container_port):
     import os
     import jinja2
 
@@ -75,12 +75,13 @@ def render_vhost_configs(app_domain_name, app_container_name):
 
     yield env.get_template('nginx-conf-80.j2').render(
         app_domain_name=app_domain_name,
-        app_container_name=app_container_name
+        app_container_name=app_container_name,
     )
 
     yield env.get_template('nginx-conf-443.j2').render(
         app_domain_name=app_domain_name,
-        app_container_name=app_container_name
+        app_container_name=app_container_name,
+        app_container_port=app_container_port,
     )
 
 
@@ -147,9 +148,10 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser()
         parser.add_argument('-d', '--domain', required=True)
         parser.add_argument('-c', '--container', required=True)
+        parser.add_argument('-p', '--port', default=80, type=int)
         args = parser.parse_args(sys.argv[2:])
 
-        initialize_domain_with_cert(args.domain, args.container)
+        initialize_domain_with_cert(args.domain, args.container, args.port)
     elif sys.argv[1] == 'restart-nginx':
         reload_nginx()
     else:
