@@ -2,20 +2,10 @@ FROM alpine:3.7
 
 RUN apk update && \
     apk add --no-cache openssl socat curl && \
-    apk add --no-cache vim nginx pdns pdns-backend-sqlite3 python3 && \
-    python3 -m ensurepip && \
-    rm -rf /usr/lib/python*/ensurepip && \
-    pip3 install --upgrade pip setuptools && \
-    if [ ! -e /usr/bin/pip ]; then ln -s /usr/bin/pip3 /usr/bin/pip ; fi && \
-    if [ ! -e /usr/bin/python ]; then ln -s /usr/bin/python3 /usr/bin/python ; fi && \
+    apk add --no-cache vim nginx pdns pdns-backend-sqlite3 && \
     rm -rf /root/.cache
 
-RUN apk add --no-cache --virtual .deps \
-        build-base linux-headers \
-        libc-dev libstdc++ libgcc \
-        gcc g++ make git \
-        python3-dev && \
-    pip install circus jinja2 && \
+RUN apk add --no-cache --virtual .deps git && \
     git clone https://github.com/Neilpang/acme.sh.git /src/acme.sh && \
     cd /src/acme.sh && ./acme.sh --install && cd - \
     rm -rf /src/acme.sh && \
