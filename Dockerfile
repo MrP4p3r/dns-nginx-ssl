@@ -1,8 +1,10 @@
 FROM alpine:3.7
 
-RUN apk update && \
-    apk add --no-cache openssl socat curl && \
-    apk add --no-cache vim nginx pdns pdns-backend-sqlite3 && \
+RUN apk update && apk add nano
+ENV EDITOR nano
+
+RUN apk add --no-cache openssl socat curl && \
+    apk add --no-cache nginx pdns pdns-backend-sqlite3 && \
     rm -rf /root/.cache
 
 RUN apk add --no-cache --virtual .deps git && \
