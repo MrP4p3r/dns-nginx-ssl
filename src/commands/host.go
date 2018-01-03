@@ -47,7 +47,7 @@ func (h *Host) issueAndInstallCert() {
 	h.ensureAcmeChallengeDirExists()
 
 	proc := exec.Command(
-		"/root/.acme.sh/.acme.sh", "--issue",
+		"/root/.acme.sh/acme.sh", "--issue",
 		"-d", h.Domain, "-w", h.getWebroot())
 	proc.Stderr = os.Stderr
 	proc.Stdout = os.Stdout
