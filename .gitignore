@@ -40,3 +40,5 @@ __pycache__/
 # other
 .remote-sync.json
 .idea
+
+src/vendor
