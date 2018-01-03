@@ -64,6 +64,7 @@ func (h *Host) issueAndInstallCert() {
 		"-d", h.Domain,
 		"--cert-file", path.Join(sslCertsDir, "cert.pem"),
 		"--key-file", path.Join(sslCertsDir, "key.pem"),
+		"--fullchain-file", path.Join(sslCertsDir, "fullchain.pem"),
 		"--reloadCmd", "manage restart nginx")
 	proc.Stdout = os.Stdout
 	proc.Stderr = os.Stderr
@@ -169,7 +170,7 @@ func (h *Host) loadTemplates() {
 			return 403;
 		}
 
-		ssl_certificate /etc/sslcerts/((( .Domain )))/cert.pem;
+		ssl_certificate /etc/sslcerts/((( .Domain )))/fullchain.pem;
 		ssl_certificate_key /etc/sslcerts/((( .Domain )))/key.pem;
 
 		error_log /var/log/nginx/((( .Domain ))).error.log;
