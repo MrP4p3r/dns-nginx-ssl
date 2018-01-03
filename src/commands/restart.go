@@ -4,6 +4,7 @@ import (
 	"log"
 	"os/exec"
 	"github.com/jawher/mow.cli"
+	"fmt"
 )
 
 func RestartCmdEntry(cmd *cli.Cmd) {
@@ -34,6 +35,8 @@ func restart(servicesList *[]string) {
 			restartErrMsg(serviceName)
 			continue
 		}
+
+		fmt.Printf("Send restart command for %s. OK\n", serviceName)
 	}
 }
 
