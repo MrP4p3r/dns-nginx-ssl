@@ -115,6 +115,7 @@ func (h *Host) appendVhostHTTP() {
 	handleError(err, "Could not execute template")
 
 	confFile.Close()
+	restartNginx()
 }
 
 func (h *Host) appendVhostHTTPS() {
@@ -127,6 +128,7 @@ func (h *Host) appendVhostHTTPS() {
 	handleError(err, "Could not execute template")
 
 	confFile.Close()
+	restartNginx()
 }
 
 func (h *Host) getVhostFilepath() string {
@@ -198,6 +200,14 @@ func (h *Host) loadTemplates() {
 
 	h.tpl80 = tpl80
 	h.tpl443 = tpl443
+}
+
+func restartNginx() {
+	proc := exec.Command("manage", "restart", "nginx")
+	proc.Stdout = os.Stdout
+	proc.Stderr = os.Stderr
+	proc.Start()
+	proc.Wait()
 }
 
 func handleError(err error, msg string) {
