@@ -21,24 +21,35 @@ RUN apk add --no-cache --virtual .deps \
     rm -rf /src/acme.sh && \
     apk del .deps
 
-ENV GOROOT=/usr/local/go \
-    GOPATH=/gopath \
-    GOBIN=/gopath/bin \
-    CGO_ENABLED=0
-
-ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+COPY ./src /src/manage
 
 RUN apk add --no-cache --virtual .deps \
         build-base linux-headers \
         libc-dev libstdc++ libgcc \
-        gcc g++ make git \
-        python3-dev && \
+        gcc g++ make git && \
     mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2 && \
     curl https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz | tar xzf - -C /usr/local/ && \
-    go get -u github.com/immortal/immortal && \
-    cd $GOPATH/src/github.com/immortal/immortal && \
-    make install && cd - && \
-    go clean -r github.com/immortal/immortal && \
+    \
+    export GOROOT=/usr/local/go && \
+    export GOPATH=/gopath && \
+    export GOBIN=/gopath/bin && \
+    export CGO_ENABLED=0 && \
+    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin && \
+    \
+    echo Building github.com/immortal/immortal && \
+    mkdir /tmp/gopath && \
+    GOPATH=/tmp/gopath go get -u github.com/immortal/immortal && \
+    cd /tmp/gopath/src/github.com/immortal/immortal && \
+    GOPATH=/tmp/gopath make install && cd - && \
+    rm -rf /tmp/gopath && \
+    \
+    echo Building ./src/manage.go && \
+    cd /src/manage && mkdir gopath && \
+    GOPATH=$PWD/gopath go get && \
+    GOPATH=$PWD/gopath go build manage.go && \
+    cp manage /usr/local/bin && \
+    cd / && rm -rf /src/manage && \
+    \
     rm -rf /usr/local/go && \
     apk del .deps
 
@@ -56,7 +67,7 @@ COPY ./confs/immortal/ /etc/immortal/
 COPY ./scripts/ /scripts/
 
 RUN chmod u+x /scripts/*
-ENV PATH=/scripts:$PATH
+ENV PATH=$PATH:/scripts
 
 VOLUME ["/var/pdns", "/etc/sslcerts", "/root/.acme.sh", "/etc/nginx/conf.d"]
 EXPOSE 53 80 443
