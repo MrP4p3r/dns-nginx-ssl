@@ -15,8 +15,7 @@ func RestartCmdEntry(cmd *cli.Cmd) {
 }
 
 func restartMany(servicesList *[]string) {
-	for idx := range *servicesList {
-		serviceName := (*servicesList)[idx]
+	for _, serviceName := range *servicesList {
 		err := restart(serviceName)
 		if err == nil {
 			log.Printf("Send restart command for %s. OK\n", serviceName)
