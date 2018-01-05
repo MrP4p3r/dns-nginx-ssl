@@ -243,7 +243,9 @@ func (h *Host) loadTemplates() {
 		keepalive_timeout 5;
 
 		location @app {
-			proxy_pass http://((( .ContainerName ))):((( .ContainerPort )));
+			set $containerName ((( .ContainerName )));
+	        set $containerPort ((( .ContainerPort )));
+			proxy_pass http://$containerName:$containerPort;
 			proxy_set_header Host $host;
 			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 			proxy_redirect off;
