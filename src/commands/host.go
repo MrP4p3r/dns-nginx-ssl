@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"text/template"
+	"io/ioutil"
 )
 
 type Host struct {
@@ -25,6 +26,7 @@ func HostCmdEntry(cmd *cli.Cmd) {
 	cmd.Command("add", "Add nginx vhost, and issue and install SSL certificate", hostAddCmdEntry)
 	cmd.Command("del", "Remove nginx vhost, revoke and remove SSL certificate", hostDelCmdEntry)
 	cmd.Command("ls", "List existing hosts with issued certs", hostLsCmdEntry)
+	cmd.Command("config", "Manage Nginx vhost files.", hostConfigCmdEntry)
 }
 
 func hostAddCmdEntry(cmd *cli.Cmd) {
@@ -49,22 +51,38 @@ func hostDelCmdEntry(cmd *cli.Cmd) {
 
 func hostLsCmdEntry(cmd *cli.Cmd) {
 	cmd.Action = func() {
-		proc := exec.Command("ls", "-1", "/etc/sslcerts/")
-		proc.Stdout = os.Stdout
-		proc.Stderr = os.Stderr
-		proc.Start()
-		proc.Wait()
+		names := getAllHostsNames()
+		for _, name := range *names {
+			fmt.Println(name)
+		}
+	}
+}
+
+func hostConfigCmdEntry(cmd *cli.Cmd) {
+	cmd.Command("recreate", "Recreate nginx vhost file for one or multiple hosts", hostConfigRecreateCmdEntry)
+}
+
+func hostConfigRecreateCmdEntry(cmd *cli.Cmd) {
+	cmd.Spec = "--all | HOSTS..."
+	allFlag := cmd.BoolOpt("all", false, "Recreate all vhost configs")
+	hostsList := cmd.StringsArg("HOSTS", nil, "List of host names to recreate vhost configs for")
+	cmd.Action = func() {
+		if *allFlag { hostsList = getAllHostsNames() }
+		recreateVhostForHosts(hostsList)
 	}
 }
 
 func (h *Host) Add() {
 	exists := h.checkIfExists()
-	if exists {
-		log.Fatalln("Domain already exists")
-	}
+	if exists { log.Fatalln("Domain already exists") }
+
 	h.appendVhostHTTP()
+	restartNginx()
+
 	h.issueAndInstallCert()
+
 	h.appendVhostHTTPS()
+	restartNginx()
 }
 
 func (h *Host) Del() {
@@ -163,6 +181,24 @@ func (h *Host) ensureSSLCertsDirExists() string {
 	return sslCertsDir
 }
 
+func getAllHostsNames() *[]string {
+	// FIXME
+	files, err := ioutil.ReadDir("/etc/sslcerts")
+	if err != nil {
+		log.Println("Failed to get list of all hosts")
+		log.Fatalln(err.Error())
+	}
+
+	hostNames := make([]string, 0)
+	for _, f := range files {
+		if f.IsDir() {
+			hostNames = append(hostNames, f.Name())
+		}
+	}
+
+	return &hostNames
+}
+
 func (h *Host) getWebroot() string {
 	return fmt.Sprintf("/var/www/%s", h.Domain)
 }
@@ -175,7 +211,29 @@ func (h *Host) getVhostFilepath() string {
 	return fmt.Sprintf("/etc/nginx/conf.d/%s.conf", h.Domain)
 }
 
-func (h *Host) appendVhostHTTP() {
+func recreateVhostForHosts(hostNames *[]string) {
+	for _, name := range *hostNames {
+		err := recreateVhost(name)
+		if err != nil {
+			log.Printf("Failed to recreate vhost for %s\n", name)
+			log.Println(err.Error())
+		}
+		restartNginx()
+	}
+}
+
+func recreateVhost(name string) error {
+	var err error
+	hst := Host{Domain: name}
+
+	err = hst.appendVhostHTTP()
+	if err != nil { return err }
+
+	err = hst.appendVhostHTTPS()
+	return err
+}
+
+func (h *Host) appendVhostHTTP() error {
 	tpl80, _ := h.getTemplates()
 
 	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_TRUNC|os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
@@ -185,10 +243,10 @@ func (h *Host) appendVhostHTTP() {
 	handleError(err, "Could not execute template")
 
 	confFile.Close()
-	restartNginx()
+	return err
 }
 
-func (h *Host) appendVhostHTTPS() {
+func (h *Host) appendVhostHTTPS() error {
 	_, tpl443 := h.getTemplates()
 
 	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_APPEND|os.O_WRONLY, 0666)
@@ -198,7 +256,7 @@ func (h *Host) appendVhostHTTPS() {
 	handleError(err, "Could not execute template")
 
 	confFile.Close()
-	restartNginx()
+	return err
 }
 
 func (h *Host) getTemplates() (*template.Template, *template.Template) {
