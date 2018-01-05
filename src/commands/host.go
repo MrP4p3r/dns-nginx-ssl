@@ -11,6 +11,8 @@ import (
     "strconv"
     "text/template"
     "io/ioutil"
+    "database/sql"
+    _ "github.com/mattn/go-sqlite3"
 )
 
 type Host struct {
@@ -82,6 +84,8 @@ func (h *Host) Add() {
     h.issueAndInstallCert()
 
     h.appendVhostHTTPS()
+    //h.saveToDB()
+
     restartNginx()
 }
 
@@ -92,6 +96,65 @@ func (h *Host) Del() {
     }
     h.removeVhost()
     h.removeCert()
+}
+
+func getDB() (*sql.DB, error) {
+    return sql.Open("sqlite3", "/var/hostmanager/hosts.sqlite3")
+}
+
+func (h *Host) saveToDB() {
+    var err error
+    db, err := getDB()
+    if err != nil {
+        log.Println(err.Error())
+        return
+    }
+
+    _, err = db.Query(
+        "INSERT INTO hosts (domainname, containername, containerport) VALUES (?, ?, ?)",
+        h.Domain, h.ContainerName, h.ContainerPort)
+    if err != nil {
+        log.Println("Failed to insert host into database")
+        log.Println(err.Error())
+        return
+    }
+
+    db.Close()
+}
+
+func loadHostFromDB(domainName string) (*Host, error) {
+    var err error
+    db, err := getDB()
+    if err != nil { return nil, err }
+
+    row := db.QueryRow("SELECT * FROM hosts WHERE domainname = ? LIMIT 1", domainName)
+
+    h := Host{}
+    err = row.Scan(&h)
+    if err != nil { return nil, err }
+
+    return &h, nil
+}
+
+func getAllHostsFromDB() (*[]Host, error) {
+    var err error
+    db, err := getDB()
+    if err != nil { return nil, err }
+
+    rows, err := db.Query("SELECT * FROM hosts")
+    if err != nil { return nil, err }
+
+    hosts := make([]Host, 0)
+    for ; rows.Next() ; {
+        h := Host{}
+        err := rows.Scan(&h)
+        if err != nil {
+            log.Println(err.Error())
+            continue
+        }
+        hosts = append(hosts, h)
+    }
+    return &hosts, nil
 }
 
 func (h *Host) checkIfExists() bool {
