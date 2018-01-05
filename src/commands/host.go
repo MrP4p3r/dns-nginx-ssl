@@ -1,24 +1,24 @@
 package commands
 
 import (
+	"fmt"
+	"github.com/jawher/mow.cli"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
-	"fmt"
-	"log"
 	"path"
 	"strconv"
 	"text/template"
-	"github.com/jawher/mow.cli"
 )
 
 type Host struct {
-	Domain string
+	Domain        string
 	ContainerName string
 	ContainerPort int
-	tpl80 *template.Template
-	tpl443 *template.Template
-	vhostConfig string
+	tpl80         *template.Template
+	tpl443        *template.Template
+	vhostConfig   string
 }
 
 func HostCmdEntry(cmd *cli.Cmd) {
@@ -48,7 +48,9 @@ func hostDelCmdEntry(cmd *cli.Cmd) {
 
 func (h *Host) Add() {
 	exists := h.checkIfExists()
-	if exists { log.Fatalln("Domain already exists") }
+	if exists {
+		log.Fatalln("Domain already exists")
+	}
 	h.appendVhostHTTP()
 	h.issueAndInstallCert()
 	h.appendVhostHTTPS()
@@ -56,7 +58,9 @@ func (h *Host) Add() {
 
 func (h *Host) Del() {
 	exists := h.checkIfExists()
-	if !exists { log.Fatalln("Domain does not exist") }
+	if !exists {
+		log.Fatalln("Domain does not exist")
+	}
 	h.removeVhost()
 	h.removeCert()
 }
@@ -163,7 +167,7 @@ func (h *Host) getVhostFilepath() string {
 func (h *Host) appendVhostHTTP() {
 	tpl80, _ := h.getTemplates()
 
-	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_TRUNC | os.O_CREATE | os.O_APPEND | os.O_WRONLY, 0666)
+	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_TRUNC|os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	handleError(err, "Could not open vhost file")
 
 	err = tpl80.Execute(confFile, h)
@@ -176,7 +180,7 @@ func (h *Host) appendVhostHTTP() {
 func (h *Host) appendVhostHTTPS() {
 	_, tpl443 := h.getTemplates()
 
-	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_APPEND | os.O_WRONLY, 0666)
+	confFile, err := os.OpenFile(h.getVhostFilepath(), os.O_APPEND|os.O_WRONLY, 0666)
 	handleError(err, "Could not open vhost file")
 
 	err = tpl443.Execute(confFile, h)
@@ -192,7 +196,6 @@ func (h *Host) getTemplates() (*template.Template, *template.Template) {
 	}
 	return h.tpl80, h.tpl443
 }
-
 
 func (h *Host) loadTemplates() {
 	tpl80s := `
@@ -261,7 +264,7 @@ func restartNginx() {
 	proc.Wait()
 }
 
-func acmeSH(args... string) error {
+func acmeSH(args ...string) error {
 	proc := exec.Command("/root/.acme.sh/acme.sh", args...)
 	proc.Stderr = os.Stderr
 	proc.Stdout = os.Stdout
@@ -269,10 +272,14 @@ func acmeSH(args... string) error {
 	var err error
 
 	err = proc.Start()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	err = proc.Wait()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

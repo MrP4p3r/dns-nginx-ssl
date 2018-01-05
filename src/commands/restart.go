@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"github.com/jawher/mow.cli"
 	"log"
 	"os/exec"
-	"github.com/jawher/mow.cli"
 )
 
 func RestartCmdEntry(cmd *cli.Cmd) {
@@ -49,4 +49,3 @@ func restart(serviceName string) error {
 func restartErrMsg(serviceName string) {
 	log.Printf("Failed to restart %s service\n", serviceName)
 }
-
