@@ -24,6 +24,7 @@ type Host struct {
 func HostCmdEntry(cmd *cli.Cmd) {
 	cmd.Command("add", "Add nginx vhost, and issue and install SSL certificate", hostAddCmdEntry)
 	cmd.Command("del", "Remove nginx vhost, revoke and remove SSL certificate", hostDelCmdEntry)
+	cmd.Command("ls", "List existing hosts with issued certs", hostLsCmdEntry)
 }
 
 func hostAddCmdEntry(cmd *cli.Cmd) {
@@ -43,6 +44,16 @@ func hostDelCmdEntry(cmd *cli.Cmd) {
 	cmd.Action = func() {
 		oldHost := Host{Domain: *domainName}
 		oldHost.Del()
+	}
+}
+
+func hostLsCmdEntry(cmd *cli.Cmd) {
+	cmd.Action = func() {
+		proc := exec.Command("ls", "-1", "/etc/sslcerts/")
+		proc.Stdout = os.Stdout
+		proc.Stderr = os.Stderr
+		proc.Start()
+		proc.Wait()
 	}
 }
 
