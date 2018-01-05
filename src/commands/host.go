@@ -306,6 +306,7 @@ func (h *Host) loadTemplates() {
         location @app {
             set $containerName ((( .ContainerName )));
             set $containerPort ((( .ContainerPort )));
+            resolver 127.0.0.11;
             proxy_pass http://$containerName:$containerPort;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
