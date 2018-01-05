@@ -22,12 +22,13 @@ type Host struct {
 }
 
 func HostCmdEntry(cmd *cli.Cmd) {
-	cmd.Command("add", "Add Host and issue cert", hostAddCmdEntry)
+	cmd.Command("add", "Add nginx vhost, and issue and install SSL certificate", hostAddCmdEntry)
+	cmd.Command("del", "Remove nginx vhost, revoke and remove SSL certificate", hostDelCmdEntry)
 }
 
 func hostAddCmdEntry(cmd *cli.Cmd) {
 	cmd.Spec = "-d -c [-p]"
-	domainName := cmd.StringOpt("d domain", "", "Domain name of Host")
+	domainName := cmd.StringOpt("d domain", "", "Domain name")
 	containerName := cmd.StringOpt("c container", "", "Container name to forward requests to")
 	containerPort := cmd.IntOpt("p port", 80, "Optional container port")
 	cmd.Action = func() {
@@ -36,42 +37,88 @@ func hostAddCmdEntry(cmd *cli.Cmd) {
 	}
 }
 
+func hostDelCmdEntry(cmd *cli.Cmd) {
+	cmd.Spec = "-d"
+	domainName := cmd.StringOpt("d domain", "", "Domain name")
+	cmd.Action = func() {
+		oldHost := Host{Domain: *domainName}
+		oldHost.Del()
+	}
+}
+
 func (h *Host) Add() {
+	exists := h.checkIfExists()
+	if exists { log.Fatalln("Domain already exists") }
 	h.appendVhostHTTP()
 	h.issueAndInstallCert()
 	h.appendVhostHTTPS()
 }
 
+func (h *Host) Del() {
+	exists := h.checkIfExists()
+	if !exists { log.Fatalln("Domain does not exist") }
+	h.removeVhost()
+	h.removeCert()
+}
+
+func (h *Host) checkIfExists() bool {
+	// FIXME
+	sslCertsDir := h.getSslCertsDir()
+	_, err := os.Stat(sslCertsDir)
+	exists := err != nil
+	return exists
+}
+
 func (h *Host) issueAndInstallCert() {
-	fmt.Printf("Issuing cert for domain %v with acme.sh...\n", h.Domain)
+	log.Printf("Issuing cert for domain %v with acme.sh...\n", h.Domain)
 	h.ensureAcmeChallengeDirExists()
 
-	proc := exec.Command(
-		"/root/.acme.sh/acme.sh", "--issue",
-		"-d", h.Domain, "-w", h.getWebroot())
-	proc.Stderr = os.Stderr
-	proc.Stdout = os.Stdout
+	var err error
 
-	err := proc.Start()
-	handleError(err, "Failed to start acme.sh")
-
-	err = proc.Wait()
+	err = acmeSH("--issue", "-d", h.Domain, "-w", h.getWebroot())
 	handleError(err, "Acme.sh could not issue a new cert")
 
 	sslCertsDir := h.ensureSSLCertsDirExists()
-	proc = exec.Command(
-		"/root/.acme.sh/acme.sh", "--install-cert",
+	err = acmeSH(
+		"--install-cert",
 		"-d", h.Domain,
 		"--cert-file", path.Join(sslCertsDir, "cert.pem"),
 		"--key-file", path.Join(sslCertsDir, "key.pem"),
 		"--fullchain-file", path.Join(sslCertsDir, "fullchain.pem"),
 		"--reloadCmd", "manage restart nginx")
-	proc.Stdout = os.Stdout
-	proc.Stderr = os.Stderr
-	proc.Start()
-
-	err = proc.Wait()
 	handleError(err, "Acme.sh could not install cert. Exitting")
+}
+
+func (h *Host) removeVhost() {
+	vhostFilePath := h.getVhostFilepath()
+	err := os.Remove(vhostFilePath)
+	if err != nil {
+		log.Println("Failed to remove vhost file")
+		log.Println(err.Error())
+	}
+	restartNginx()
+}
+
+func (h *Host) removeCert() {
+	var err error
+
+	err = acmeSH("--revoke", "-d", h.Domain)
+	if err != nil {
+		log.Println("Failed to revoke a cert")
+		log.Println(err.Error())
+	}
+
+	err = acmeSH("--remove", "-d", h.Domain)
+	if err != nil {
+		log.Println("Failed to remove a cert")
+		log.Println(err.Error())
+	}
+
+	acmeSslCertsDir := fmt.Sprintf("/root/.acme.sh/%s", h.Domain)
+	removeAllIfExists(acmeSslCertsDir)
+
+	sslCertsDir := h.getSslCertsDir()
+	removeAllIfExists(sslCertsDir)
 }
 
 func (h *Host) ensureAcmeChallengeDirExists() string {
@@ -84,7 +131,7 @@ func (h *Host) ensureAcmeChallengeDirExists() string {
 }
 
 func (h *Host) ensureSSLCertsDirExists() string {
-	sslCertsDir := fmt.Sprintf("/etc/sslcerts/%s", h.Domain)
+	sslCertsDir := h.getSslCertsDir()
 
 	err := os.MkdirAll(sslCertsDir, 0600)
 	handleError(err, "Could not create ssl cert directory")
@@ -102,8 +149,15 @@ func (h *Host) ensureSSLCertsDirExists() string {
 }
 
 func (h *Host) getWebroot() string {
-	webRoot := fmt.Sprintf("/var/www/%s", h.Domain)
-	return webRoot
+	return fmt.Sprintf("/var/www/%s", h.Domain)
+}
+
+func (h *Host) getSslCertsDir() string {
+	return fmt.Sprintf("/etc/sslcerts/%s", h.Domain)
+}
+
+func (h *Host) getVhostFilepath() string {
+	return fmt.Sprintf("/etc/nginx/conf.d/%s.conf", h.Domain)
 }
 
 func (h *Host) appendVhostHTTP() {
@@ -130,10 +184,6 @@ func (h *Host) appendVhostHTTPS() {
 
 	confFile.Close()
 	restartNginx()
-}
-
-func (h *Host) getVhostFilepath() string {
-	return fmt.Sprintf("/etc/nginx/conf.d/%s.conf", h.Domain)
 }
 
 func (h *Host) getTemplates() (*template.Template, *template.Template) {
@@ -211,9 +261,37 @@ func restartNginx() {
 	proc.Wait()
 }
 
+func acmeSH(args... string) error {
+	proc := exec.Command("/root/.acme.sh/acme.sh", args...)
+	proc.Stderr = os.Stderr
+	proc.Stdout = os.Stdout
+
+	var err error
+
+	err = proc.Start()
+	if err != nil { return err }
+
+	err = proc.Wait()
+	if err != nil { return err }
+
+	return nil
+}
+
 func handleError(err error, msg string) {
 	if err != nil {
 		log.Println(msg)
 		log.Fatalln(err)
+	}
+}
+
+func removeAllIfExists(path string) {
+	if _, err := os.Stat(path); err != nil {
+		log.Printf("Directory %s does not exist. Skipping.\n", path)
+	} else {
+		err := os.RemoveAll(path)
+		if err != nil {
+			log.Printf("Failed to remove %s directory\n", path)
+			log.Println(err.Error())
+		}
 	}
 }
