@@ -69,7 +69,7 @@ func (h *Host) checkIfExists() bool {
 	// FIXME
 	sslCertsDir := h.getSslCertsDir()
 	_, err := os.Stat(sslCertsDir)
-	exists := err != nil
+	exists := err == nil
 	return exists
 }
 
