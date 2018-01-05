@@ -218,13 +218,16 @@ func recreateVhostForHosts(hostNames *[]string) {
             log.Printf("Failed to recreate vhost for %s\n", name)
             log.Println(err.Error())
         }
-        restartNginx()
     }
+    restartNginx()
 }
 
 func recreateVhost(name string) error {
     var err error
     hst := Host{Domain: name}
+
+    vhostFilePath := hst.getVhostFilepath()
+    if _, err := os.Stat(vhostFilePath); err != nil { return err }
 
     err = hst.appendVhostHTTP()
     if err != nil { return err }
