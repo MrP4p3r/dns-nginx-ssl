@@ -26,7 +26,7 @@ func HostCmdEntry(cmd *cli.Cmd) {
     cmd.Command("add", "Add nginx vhost, and issue and install SSL certificate", hostAddCmdEntry)
     cmd.Command("del", "Remove nginx vhost, revoke and remove SSL certificate", hostDelCmdEntry)
     cmd.Command("ls", "List existing hosts with issued certs", hostLsCmdEntry)
-    cmd.Command("config", "Manage Nginx vhost files.", hostConfigCmdEntry)
+    //cmd.Command("config", "Manage Nginx vhost files.", hostConfigCmdEntry)
 }
 
 func hostAddCmdEntry(cmd *cli.Cmd) {
