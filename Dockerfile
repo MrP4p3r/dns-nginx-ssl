@@ -45,12 +45,11 @@ RUN apk add --no-cache --virtual .deps \
     rm -rf /usr/local/go && \
     apk del .deps
 
-RUN mkdir /run/nginx && \
-    mkdir -p /var/www && \
-    mkdir -p /etc/sslcerts && \
+RUN mkdir -p /run/nginx /var/www /etc/sslcerts && \
     chown nginx:nginx /run/nginx /var/www /etc/sslcerts && \
+    rm -rf /etc/nginx/conf.d/* && \
     mkdir /var/pdns /etc/pdns/pdns.d && \
-    rm -rf /etc/nginx/conf.d/*
+    chown pdns:pdns -R /var/pdns /etc/pdns/pdns.d
 
 
 RUN echo 'daemon off;' >> /etc/nginx/nginx.conf
